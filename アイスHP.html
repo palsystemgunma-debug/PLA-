@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ja" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLAのアイス屋さん | ひんやりおいしい！アイスクリームのひみつ | インタラクティブ版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Pastel Pop -->
+    <!-- Application Structure Plan: A thematic, single-column scrolling SPA. A sticky nav allows quick jumps between sections. The core is an interactive section where users click buttons to dynamically update a central display and a Chart.js bar chart, making comparison of ice cream types intuitive. This is followed by a grid of clickable trivia cards that reveal answers, transforming static facts into an engaging Q&A. This structure prioritizes interactive discovery and visual comparison, enhancing user engagement and comprehension. -->
+    <!-- Visualization & Content Choices: 1. Ice Cream Types: Goal: Compare. Method: Interactive display with buttons, a central details panel, and a dynamic Chart.js bar chart. Interaction: Clicking a type button updates the details and chart, and now also changes the icon. Justification: Enables direct, visual comparison of milk/fat content and enhances visual distinction between types. Library: Chart.js, Vanilla JS. 2. Trivia Facts: Goal: Inform engagingly. Method: Grid of clickable "question" cards. Interaction: Clicking a card reveals the answer. Justification: The "reveal" mechanic fosters curiosity and active participation. Library: Vanilla JS. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background: radial-gradient(circle at center, #FFFFFF 0%, #FDF5E6 70%, #FAEBD7 100%); /* Soft, creamy radial gradient */
+            background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg opacity='0.1'%3E%3Ctext x='0' y='15' font-size='16'%3E🍦%3C/text%3E%3C/g%3E%3C/svg%3E"); /* Subtle repeating ice cream emoji */
+            background-repeat: repeat;
+        }
+        .font-pop {
+            font-family: 'Mochiy Pop One', sans-serif;
+        }
+        .nav-link {
+            transition: color 0.3s, border-color 0.3s;
+        }
+        .type-button.active {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 250px;
+            max-height: 300px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 300px;
+                max-height: 350px;
+            }
+        }
+        .trivia-card-inner {
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .trivia-card.is-flipped .trivia-card-inner {
+            transform: rotateY(180deg);
+        }
+        .trivia-card-front,
+        .trivia-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            text-align: center;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .trivia-card-back {
+            transform: rotateY(180deg);
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-md">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <div class="font-pop text-xl text-amber-600">PLAのアイス屋さん</div>
+            <div class="flex items-center space-x-4 md:space-x-6">
+                <a href="#types" class="nav-link text-gray-600 hover:text-amber-500 border-b-2 border-transparent hover:border-amber-500 pb-1 text-sm md:text-base">くらべてみよう</a>
+                <a href="#trivia" class="nav-link text-gray-600 hover:text-amber-500 border-b-2 border-transparent hover:border-amber-500 pb-1 text-sm md:text-base">豆ちしき</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8 max-w-5xl">
+        <section class="text-center my-8 md:my-12">
+            <h1 class="font-pop text-4xl md:text-5xl text-amber-500 mb-2">PLAのアイス屋さん！🍦</h1>
+            <h2 class="font-pop text-5xl md:text-6xl text-amber-600">ひんやりおいしい！アイスクリームのひみつ✨</h2>
+            <p class="mt-6 text-lg text-gray-600 max-w-2xl mx-auto">みんなが食べているアイス、実は法律で4つのタイプに分かれているって知ってた？<br>ボタンを押して、それぞれの違いを発見しよう！🔍</p>
+        </section>
+
+        <section id="types" class="my-16 md:my-24 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h3 class="font-pop text-3xl md:text-4xl text-amber-600">くらべてみよう！アイスのタイプ 🌈</h3>
+                <p class="mt-4 text-gray-600">下にあるボタンを押すと、アイスの情報とグラフが変わるよ。💡</p>
+            </div>
+
+            <div class="flex justify-center flex-wrap gap-3 md:gap-4 mb-8">
+                <button data-type="ice-cream" class="type-button font-pop text-white py-3 px-6 rounded-full shadow-lg transition-all duration-300 bg-blue-400 hover:bg-blue-500">アイスクリーム</button>
+                <button data-type="ice-milk" class="type-button font-pop text-white py-3 px-6 rounded-full shadow-lg transition-all duration-300 bg-yellow-400 hover:bg-yellow-500">アイスミルク</button>
+                <button data-type="lacto-ice" class="type-button font-pop text-white py-3 px-6 rounded-full shadow-lg transition-all duration-300 bg-pink-400 hover:bg-pink-500">ラクトアイス</button>
+                <button data-type="hyoka" class="type-button font-pop text-white py-3 px-6 rounded-full shadow-lg transition-all duration-300 bg-green-400 hover:bg-green-500">氷菓</button>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 transition-all duration-500 min-h-[500px] md:min-h-[600px]">
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-6 md:gap-8 items-center">
+                    <div class="md:col-span-2 text-center">
+                        <div id="ice-cream-icon" class="w-40 h-40 md:w-48 md:h-48 mx-auto rounded-full flex items-center justify-center transition-colors duration-500">
+                            <span id="ice-icon-emoji" class="text-7xl md:text-8xl">🍨</span>
+                        </div>
+                    </div>
+                    <div class="md:col-span-3">
+                        <h4 id="ice-cream-name" class="font-pop text-3xl md:text-4xl transition-colors duration-500">アイスクリーム</h4>
+                        <p id="ice-cream-description" class="mt-4 text-gray-600 leading-relaxed">牛乳の栄養（乳固形分）とミルクの脂肪（乳脂肪分）が一番多くて、リッチでクリーミーな味わいだよ。</p>
+                    </div>
+                </div>
+                <div class="mt-8">
+                    <h5 class="font-bold text-center text-gray-700 mb-4">乳固形分と乳脂肪分のわりあい</h5>
+                    <div class="chart-container">
+                        <canvas id="iceCreamChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="trivia" class="my-16 md:my-24 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h3 class="font-pop text-3xl md:text-4xl text-amber-600">もっとくわしく！アイスの豆ちしき 💡</h3>
+                <p class="mt-4 text-gray-600">カードをクリックして、ひみつをのぞいてみよう！🤫</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                <div class="trivia-card h-56 perspective-1000 cursor-pointer">
+                    <div class="trivia-card-inner relative w-full h-full">
+                        <div class="trivia-card-front absolute w-full h-full bg-white rounded-xl shadow-lg flex flex-col items-center justify-center p-6 text-center border-2 border-blue-200">
+                            <div class="text-4xl mb-3">🗓️</div>
+                            <h4 class="font-bold text-xl text-blue-700">なぜ賞味期限が<br>ないの？</h4>
+                        </div>
+                        <div class="trivia-card-back absolute w-full h-full bg-blue-100 rounded-xl shadow-lg flex flex-col items-center justify-center p-6 text-center">
+                            <p class="text-blue-900 text-sm md:text-base">アイスは-18℃以下で保存されていれば、ばい菌が増えられないから品質がほとんど変わらないんだ。だから法律で賞味期限を書かなくても良いことになっているよ。</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="trivia-card h-56 perspective-1000 cursor-pointer">
+                    <div class="trivia-card-inner relative w-full h-full">
+                        <div class="trivia-card-front absolute w-full h-full bg-white rounded-xl shadow-lg flex flex-col items-center justify-center p-6 text-center border-2 border-yellow-200">
+                            <div class="text-4xl mb-3">💨</div>
+                            <h4 class="font-bold text-xl text-yellow-700">なめらかさの秘密は<br>「空気」！</h4>
+                        </div>
+                        <div class="trivia-card-back absolute w-full h-full bg-yellow-100 rounded-xl shadow-lg flex flex-col items-center justify-center p-6 text-center">
+                            <p class="text-yellow-900 text-sm md:text-base">アイスのなめらかさは、中に混ぜこまれた空気の量で決まるんだ。この空気の割合を<span class="font-bold">「オーバーラン」</span>って言うよ。空気が多いとフワッと軽く、少ないとずっしり濃厚な食感になるんだ。</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="trivia-card h-56 perspective-1000 cursor-pointer">
+                    <div class="trivia-card-inner relative w-full h-full">
+                        <div class="trivia-card-front absolute w-full h-full bg-white rounded-xl shadow-lg flex flex-col items-center justify-center p-6 text-center border-2 border-pink-200">
+                            <div class="text-4xl mb-3">🏯</div>
+                            <h4 class="font-bold text-xl text-pink-700">日本で最初の<br>アイスは？</h4>
+                        </div>
+                        <div class="trivia-card-back absolute w-full h-full bg-pink-100 rounded-xl shadow-lg flex flex-col items-center justify-center p-6 text-center">
+                            <p class="text-pink-900 text-sm md:text-base">今から150年以上も昔、アメリカへ渡ったお侍さんたちが初めて食べたんだって。その後、横浜の馬車道で「あいすくりん」という名前で売り出されたのが日本の始まりだよ。</p>
+                        </div>
+                    </div>
+                </div>
+                 <div class="trivia-card h-56 perspective-1000 cursor-pointer">
+                    <div class="trivia-card-inner relative w-full h-full">
+                        <div class="trivia-card-front absolute w-full h-full bg-white rounded-xl shadow-lg flex flex-col items-center justify-center p-6 text-center border-2 border-green-200">
+                            <div class="text-4xl mb-3">🧐</div>
+                            <h4 class="font-bold text-xl text-green-700">パッケージの裏を<br>見てみよう！</h4>
+                        </div>
+                        <div class="trivia-card-back absolute w-full h-full bg-green-100 rounded-xl shadow-lg flex flex-col items-center justify-center p-6 text-center">
+                            <p class="text-green-900 text-sm md:text-base">「原材料名」には**原料比率の多い順**に書いてあるよ。「/」の後に書いてあるのが<span class="font-bold">食品添加物</span>。アイスをなめらかにする安定剤や、水と油を混ぜる乳化剤など、おいしくするための工夫なんだ。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="text-center py-8 mt-8 border-t border-amber-100">
+        <p class="text-gray-500 mb-2">これで君もアイスクリームはかせだ！🎓</p>
+        <a href="https://item.pal-system.co.jp/confectionery/" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 font-bold transition-colors duration-200">
+            パルシステムのアイスをもっと知る！🍦✨
+        </a>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const iceCreamData = {
+                'ice-cream': {
+                    name: 'アイスクリーム',
+                    description: '牛乳の栄養（乳固形分）とミルクの脂肪（乳脂肪分）が一番多くて、リッチでクリーミーな味わいだよ。',
+                    milkSolid: 15.0,
+                    milkFat: 8.0,
+                    color: 'blue',
+                    icon: '🍨'
+                },
+                'ice-milk': {
+                    name: 'アイスミルク',
+                    description: '牛乳の成分はアイスクリームより少し少なめ。ミルク感とすっきりした味わいの、いいとこどり！',
+                    milkSolid: 10.0,
+                    milkFat: 3.0,
+                    color: 'yellow',
+                    icon: '🍦'
+                },
+                'lacto-ice': {
+                    name: 'ラクトアイス',
+                    description: '牛乳の代わりに植物の油が使われることも。乳脂肪分の決まりがなく、いろんな味と相性バツグン！',
+                    milkSolid: 3.0,
+                    milkFat: 0, 
+                    color: 'pink',
+                    icon: '🍧'
+                },
+                'hyoka': {
+                    name: '氷菓（ひょうか）',
+                    description: 'かき氷やシャーベットの仲間。牛乳の成分はほとんど入ってなくて、果汁などを凍らせて作るよ。',
+                    milkSolid: 2.9, 
+                    milkFat: 0,
+                    color: 'green',
+                    icon: '🧊'
+                }
+            };
+
+            const colorMapping = {
+                blue: { bg: 'bg-blue-100', text: 'text-blue-700' },
+                yellow: { bg: 'bg-yellow-100', text: 'text-yellow-700' },
+                pink: { bg: 'bg-pink-100', text: 'text-pink-700' },
+                green: { bg: 'bg-green-100', text: 'text-green-700' },
+            };
+
+            const chartColors = {
+                milkSolid: 'rgba(59, 130, 246, 0.7)',
+                milkFat: 'rgba(251, 191, 36, 0.7)',
+            };
+            
+            const iconContainerEl = document.getElementById('ice-cream-icon');
+            const iconEmojiEl = document.getElementById('ice-icon-emoji'); // 新しく追加したspan要素
+            const nameEl = document.getElementById('ice-cream-name');
+            const descriptionEl = document.getElementById('ice-cream-description');
+            const buttons = document.querySelectorAll('.type-button');
+            
+            const ctx = document.getElementById('iceCreamChart').getContext('2d');
+            let iceCreamChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['乳固形分', '乳脂肪分'],
+                    datasets: [{
+                        label: '成分の割合 (%)',
+                        data: [0, 0],
+                        backgroundColor: [
+                            chartColors.milkSolid,
+                            chartColors.milkFat
+                        ],
+                        borderColor: [
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(251, 191, 36, 1)'
+                        ],
+                        borderWidth: 1,
+                        borderRadius: 5,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 20,
+                            title: {
+                                display: true,
+                                text: 'パーセント (%)'
+                            }
+                        },
+                        y: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.x !== null) {
+                                        let value = context.parsed.x;
+                                        if (context.label === '乳固形分' && value === 2.9) {
+                                            label += '3.0% 未満';
+                                        } else if (context.label === '乳脂肪分' && value === 0 && (context.chart.config.meta.type === 'lacto-ice' || context.chart.config.meta.type === 'hyoka')) {
+                                            label += context.chart.config.meta.type === 'lacto-ice' ? '決まりなし' : 'ほとんどなし';
+                                        }
+                                        else {
+                                            label += value + '% 以上';
+                                        }
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            function updateDisplay(type) {
+                const data = iceCreamData[type];
+                if (!data) return;
+
+                const oldColor = iconContainerEl.dataset.color || 'blue';
+                const newColor = data.color;
+
+                iconContainerEl.classList.remove(colorMapping[oldColor].bg);
+                iconContainerEl.classList.add(colorMapping[newColor].bg);
+                iconContainerEl.dataset.color = newColor;
+
+                nameEl.classList.remove(colorMapping[oldColor].text);
+                nameEl.classList.add(colorMapping[newColor].text);
+                
+                nameEl.textContent = data.name;
+                descriptionEl.textContent = data.description;
+                iconEmojiEl.textContent = data.icon; // アイコンの絵文字を更新
+
+                iceCreamChart.data.datasets[0].data = [data.milkSolid, data.milkFat];
+                iceCreamChart.config.meta = { type: type };
+                iceCreamChart.update();
+
+                buttons.forEach(button => {
+                    button.classList.remove('active');
+                    if (button.dataset.type === type) {
+                        button.classList.add('active');
+                    }
+                });
+            }
+
+            buttons.forEach(button => {
+                button.addEventListener('click', () => {
+                    updateDisplay(button.dataset.type);
+                });
+            });
+
+            const triviaCards = document.querySelectorAll('.trivia-card');
+            triviaCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    card.classList.toggle('is-flipped');
+                });
+            });
+
+            // Initial display update
+            updateDisplay('ice-cream');
+        });
+    </script>
+</body>
+</html>
